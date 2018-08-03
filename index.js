@@ -81,6 +81,9 @@ export class CloubPlayer {
     // animation frame 
     this.destructed = true
 
+    // destroy listeners
+    this.listeners = {}
+
     // rm all event listeners
     this.audio.removeEventListener('loadstart', this.__loadstart.bind(this))
     this.audio.removeEventListener('play', this.__play.bind(this))
@@ -90,11 +93,17 @@ export class CloubPlayer {
     this.audio.removeEventListener('canplay', this.__canplay.bind(this))
     this.audio.removeEventListener('timeupdate', this.__timeupdate.bind(this))
 
-    //
+    // remove the canvas click
     this.canvasEl.addEventListener('click', this.__onCanvasClick.bind(this), false)
-  }
 
- 
+    // remove the elements
+    const wrapper = document.getElementById(this.wrapperId)
+    if (wrapper){
+      while (wrapper.firstChild) {
+        wrapper.removeChild(wrapper.firstChild)
+      }
+    }
+  }
 
   setWfData(wfData){
     if(!wfData || wfData.constructor.name.toLowerCase() !== 'array'){
@@ -155,7 +164,7 @@ export class CloubPlayer {
 
   _animationLoop(){
 
-    this.animTime += 5
+    this.animTime += 10
 
     if(this.loading){
       this._drawLoading()
@@ -203,6 +212,9 @@ export class CloubPlayer {
     if(this.config.wfHeight){
       height = this.config.wfHeight
     }
+    if(this.config.responsive){
+      width = wrapperEl.offsetWidth
+    }
 
     // set
     this.width = width
@@ -244,7 +256,6 @@ export class CloubPlayer {
       // refresh
       this._draw()
     }
-    // console.log('timeupdate', timeRatio)
   }
 
   _drawLoading(){
@@ -297,6 +308,14 @@ export class CloubPlayer {
 
       // inc the offset in real pixel width
       woffset += BAR_SPACE+BAR_WIDTH
+    }
+
+    // to have an idea of the format
+    if(this.audio){
+      // console.log(this.audio.type)
+      this.ctx.font = '8px Arial'
+      this.ctx.fillStyle = this.config.wfMainCol
+      this.ctx.fillText(this.audio.type.split('/')[1], 0, 8)
     }
   }
 
@@ -398,17 +417,14 @@ export class CloubPlayer {
   // event listeners, for the player
   __loadstart(){
     this.loading = true
-    // console.log('loadstart')
   }
 
   __play(){
     this.listeners['play'] ? this.listeners['play']() : ''
-    // console.log('play')
   }
 
   __pause(){
     this.listeners['pause'] ? this.listeners['pause']() : ''
-    // console.log('pause')
   }
 
   __canplay(){
@@ -416,25 +432,24 @@ export class CloubPlayer {
 
     // force redraw
     this._draw()
-    // console.log('canplay')
+
+    // trigg external listeners
+    this.listeners['canplay'] ? this.listeners['canplay']() : ''
   }
 
   __waiting(){
     this.loading = true
-    // console.log('waiting')
   }
 
   __abort(){
-    // console.log('abort')
   }
 
   __error(){
-    // console.log('error')
   }
 
   __timeupdate(){
     this._updateTime(this.audio.currentTime, this.backendDuration, this.audio.duration)
-    // console.log(this.audio.currentTime, this.backendDuration, this.audio.duration)
+    this.listeners['timeupdate'] ? this.listeners['timeupdate'](this.audio.currentTime) : ''
   }
 }
 
